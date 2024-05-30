@@ -185,11 +185,17 @@ class Window(QGraphicsView):
                         self.delete_item_at(capture_row, capture_col)
 
 
+
+
                     if self.board[grid_y][grid_x] == 1:
                         self.put_down(self.drag_item,grid_x,grid_y)
 
-                    else:
-                        self.put_down(None, None, None, False)
+                        ai_move = select_best_move(self.checkers, 5, "black")
+                        self.checkers = make_move(self.checkers, ai_move)
+                        self.piece_pos_update(ai_move)
+
+                else:
+                    self.put_down(None, None, None, False)
 
             else:
                 self.put_down(None, None, None, False)
