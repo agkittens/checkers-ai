@@ -4,4 +4,4 @@ COLOR3 = "#e6d2af"
 
 SIZE = 600
 
-BG_PATH = r"C:\Users\agkit\Desktop\dyplomowa\interface\assets\bg9.jpg"
+BG_PATH = "assets/bg9.jpg"
