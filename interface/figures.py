@@ -22,15 +22,15 @@ class Figure(QGraphicsItem):
     @staticmethod
     def load_figures():
 
-        red = {"r": QPixmap("assets/red/red.png").scaled(60,60),
-                 "r2": QPixmap("assets/red/red2.png").scaled(60,60),
+        pink = {"r": QPixmap("assets/red/pink.png").scaled(60,60),
+                 "r2": QPixmap("assets/red/pink2.png").scaled(60,60),
                  }
 
         white = {"w": QPixmap("assets/white/white.png").scaled(60,60),
                  "w2": QPixmap("assets/white/white2.png").scaled(60,60),
                  }
 
-        return red, white
+        return pink, white
 
 
 

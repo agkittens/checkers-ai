@@ -1,8 +1,9 @@
 import sys
 import threading
 
-from PyQt5.QtGui import QColor, QImage, QPixmap
-from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsRectItem, QApplication, QGraphicsPixmapItem
+from PyQt5.QtGui import QColor, QImage, QPixmap, QPen
+from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsRectItem, QApplication, QGraphicsPixmapItem, \
+    QPushButton, QGraphicsDropShadowEffect
 from PyQt5.QtCore import Qt, QPointF
 from figures import Figure
 import numpy as np
@@ -46,6 +47,7 @@ class Window(QGraphicsView):
         self.create_board()
         self.place_figures()
         self.load_bg()
+        self.add_buttons()
 
         self.show()
 
@@ -56,11 +58,42 @@ class Window(QGraphicsView):
 
         background_pixmap = QGraphicsPixmapItem(QPixmap.fromImage(background_image))
         background_pixmap.setTransformationMode(Qt.TransformationMode.SmoothTransformation)
-        background_pixmap.setPos(-700, -700)
+        background_pixmap.setPos(-350, -200)
         background_pixmap.setZValue(-1)
 
         self.scene.addItem(background_pixmap)
 
+    def add_buttons(self):
+        self.one_robotK = QPushButton("Player vs Kawasaki", self)
+        self.one_robotK.resize(250,90)
+        self.one_robotK.move(40,200)
+        print('robot player')
+        shadow_effect = QGraphicsDropShadowEffect()
+        shadow_effect.setBlurRadius(15)
+        shadow_effect.setColor(QColor(145, 90, 87, 127))
+        shadow_effect.setOffset(0, 7)
+        self.one_robotK.setGraphicsEffect(shadow_effect)
+
+        self.one_robotM = QPushButton("Player vs Mitsubishi", self)
+        self.one_robotM.resize(250,90)
+        self.one_robotM.move(40,350)
+        print('robot player')
+        shadow_effect_1 = QGraphicsDropShadowEffect()
+        shadow_effect_1.setBlurRadius(15)
+        shadow_effect_1.setColor(QColor(145, 90, 87, 127))
+        shadow_effect_1.setOffset(0, 7)
+        self.one_robotM.setGraphicsEffect(shadow_effect_1)
+
+        self.two_robots = QPushButton("Kawasaki Vs Mitsubishi", self)
+        self.two_robots.resize(250,90)
+        self.two_robots.move(40,500)
+        print('robots')
+        shadow_effect_2 = QGraphicsDropShadowEffect()
+        shadow_effect_2.setBlurRadius(15)
+        shadow_effect_2.setColor(QColor(145, 90, 87, 127))
+        shadow_effect_2.setOffset(0, 7)
+        self.two_robots.setGraphicsEffect(shadow_effect_2)
+        self.setStyleSheet(STYLE_BUTTON)
 
     def create_board(self):
         size_w = self.width / self.slots
@@ -68,6 +101,13 @@ class Window(QGraphicsView):
 
         color1 = QColor(COLOR1)
         color2 = QColor(COLOR2)
+        color3 = QColor(COLOR4)
+
+        border_item = QGraphicsRectItem(0, 0, self.width, self.height)
+        border_pen = QPen(QColor(color3))
+        border_pen.setWidth(15)
+        border_item.setPen(border_pen)
+        self.scene.addItem(border_item)
 
         for i in range(self.slots):
             for j in range(self.slots):
@@ -131,27 +171,13 @@ class Window(QGraphicsView):
             if grid_x in range(0,self.slots+1) and grid_y in range(0,self.slots+1):
 
                 if self.board[grid_y][grid_x] == 1:
-                    final_x = grid_x * grid_size + 8
-                    final_y = grid_y * grid_size + 8
-                    self.drag_item.setPos(final_x, final_y)
-                    self.drag_item.setData(Qt.UserRole+1, (grid_y,grid_x))
-                    self.fig.change_fig_pos(self.drag_item.data(Qt.UserRole),
-                                            grid_y,
-                                            grid_x)
+                    self.put_down(self.drag_item,grid_x,grid_y)
 
                 else:
-                    self.drag_item.setPos(self.original_pos)
-                    pos = self.drag_item.data(Qt.UserRole + 1)
-                    self.fig.change_fig_pos(self.drag_item.data(Qt.UserRole),
-                                            pos[0],
-                                            pos[1])
-            else:
-                self.drag_item.setPos(self.original_pos)
-                pos = self.drag_item.data(Qt.UserRole + 1)
+                    self.put_down(None, None, None, False)
 
-                self.fig.change_fig_pos(self.drag_item.data(Qt.UserRole),
-                                        pos[0],
-                                        pos[1])
+            else:
+                self.put_down(None, None, None, False)
 
             self.drag_item = None
             self.check_table()
@@ -184,16 +210,7 @@ class Window(QGraphicsView):
 
                     if item_to_move:
                         self.fig.change_fig_pos(None, src_y, src_x)
-                        self.fig.change_fig_pos(item_to_move.data(Qt.UserRole),
-                                                dest_y,
-                                                dest_x)
-
-                        grid_size = self.width / self.slots
-                        final_x = dest_x * grid_size + 8
-                        final_y = dest_y * grid_size + 8
-
-                        item_to_move.setPos(final_x, final_y)
-                        item_to_move.setData(Qt.UserRole + 1, (dest_y, dest_x))
+                        self.put_down(item_to_move,dest_x,dest_y)
 
                         self.check_table()
                         self.refresh_scene()
@@ -205,6 +222,24 @@ class Window(QGraphicsView):
 
             except ValueError:
                 print("Invalid input. Please enter integers only.")
+
+    def put_down(self,item,x,y, correct = True):
+        if correct:
+            grid_size = self.width / self.slots
+            final_x = x * grid_size + 8
+            final_y = y * grid_size + 8
+
+            item.setPos(final_x, final_y)
+            item.setData(Qt.UserRole + 1, (y, x))
+            self.fig.change_fig_pos(item.data(Qt.UserRole),
+                                    y,
+                                    x)
+        else:
+            self.drag_item.setPos(self.original_pos)
+            pos = self.drag_item.data(Qt.UserRole + 1)
+            self.fig.change_fig_pos(self.drag_item.data(Qt.UserRole),
+                                    pos[0],
+                                    pos[1])
 
     def refresh_scene(self):
         for item in self.scene.items():
