@@ -5,7 +5,7 @@ COLOR4 = "#313453"
 
 SIZE = 600
 
-BG_PATH = r"C:\Users\agkit\Desktop\dyplomowa\interface\assets\bg11.jpg"
+BG_PATH = "assets/bg9.jpg"
 
 STYLE_BUTTON = """
             QPushButton {
