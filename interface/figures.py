@@ -16,9 +16,8 @@ class Figure(QGraphicsItem):
                               ['r', None, 'r', None, 'r', None, 'r', None]
                               ]
 
-
-    def define_basic_moves(self):
-        pass
+    def change_fig_pos(self, fig: str, idx_x: int, idx_y: int):
+        self.figures_board[idx_x][idx_y] = fig
 
     @staticmethod
     def load_figures():
