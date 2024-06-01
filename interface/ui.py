@@ -1,5 +1,6 @@
 import sys
 import threading
+import time
 
 from PyQt5.QtGui import QColor, QImage, QPixmap, QPen
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsRectItem, QApplication, QGraphicsPixmapItem, \
@@ -190,7 +191,7 @@ class Window(QGraphicsView):
                     if self.board[grid_y][grid_x] == 1:
                         self.put_down(self.drag_item,grid_x,grid_y)
 
-                        ai_move = select_best_move(self.checkers, 5, "black")
+                        ai_move = select_best_move(self.checkers, 6, "black")
                         self.checkers = make_move(self.checkers, ai_move)
                         self.piece_pos_update(ai_move)
 
