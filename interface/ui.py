@@ -1,5 +1,6 @@
 import sys
 import threading
+import time
 
 from PyQt5.QtGui import QColor, QImage, QPixmap, QPen
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsRectItem, QApplication, QGraphicsPixmapItem, \
