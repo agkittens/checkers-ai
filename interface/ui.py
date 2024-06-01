@@ -196,7 +196,8 @@ class Window(QGraphicsView):
 
                         ai_move = select_best_move(self.checkers, 6, "black")
                         self.checkers = make_move(self.checkers, ai_move)
-                        self.make_move(**ai_move)
+                        ((a, b),(c,d)) = ai_move
+                        self.make_move(b,a,d,c)
 
                 else:
                     self.put_down(None, None, None, False)
