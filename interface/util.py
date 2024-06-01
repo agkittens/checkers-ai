@@ -5,7 +5,7 @@ COLOR4 = "#313453"
 
 SIZE = 600
 
-BG_PATH = "assets/bg9.jpg"
+BG_PATH = "assets/bg11.jpg"
 
 STYLE_BUTTON = """
             QPushButton {
