@@ -193,7 +193,7 @@ class Window(QGraphicsView):
             board_str += row_str + "\n"
         print(board_str)
 
-    def move_piece_console(self):
+    def type_move(self):
         while True:
             try:
                 src_x = int(input("Enter source x: "))
@@ -256,7 +256,7 @@ class Window(QGraphicsView):
 def main():
     app = QApplication(sys.argv)
     window = Window()
-    threading.Thread(target=window.move_piece_console, daemon=True).start()
+    threading.Thread(target=window.type_move, daemon=True).start()
 
     sys.exit(app.exec_())
 
