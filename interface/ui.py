@@ -4,21 +4,19 @@ import threading
 from PyQt5.QtGui import QColor, QImage, QPixmap, QPen
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsRectItem, QApplication, QGraphicsPixmapItem, \
     QPushButton, QGraphicsDropShadowEffect
-from PyQt5.QtCore import Qt, QPointF
+from PyQt5.QtCore import Qt, QPointF, pyqtSignal
 from figures import Figure
 import numpy as np
 from util import *
-from checkers import *
 
 class Window(QGraphicsView):
+    movePieceSignal = pyqtSignal(int, int, int, int)
+
     def __init__(self):
         super().__init__()
         self.title = "Checkers"
         self.width = self.height = 600
         self.slots = 8
-
-        self.checkers = initialize_board()
-        self.player = "white"
 
         self.scene = QGraphicsScene()
 
@@ -41,6 +39,8 @@ class Window(QGraphicsView):
         self.original_pos = QPointF()
 
         self.create_window()
+        self.movePieceSignal.connect(self.make_move)
+
 
     def create_window(self):
         self.setWindowTitle(self.title)
@@ -172,27 +172,10 @@ class Window(QGraphicsView):
             grid_x = round((scene_pos.x() - self.drag_offset.x() - 8) / grid_size)
             grid_y = round((scene_pos.y() - self.drag_offset.y() - 8) / grid_size)
 
-            orig_x = round((self.original_pos.x() - 8) / grid_size)
-            orig_y = round((self.original_pos.y() - 8) / grid_size)
-
             if grid_x in range(0,self.slots+1) and grid_y in range(0,self.slots+1):
-                move = ((orig_y, orig_x), (grid_y,grid_x))
-                if move in get_possible_moves(self.checkers, self.player):
-                    self.checkers = make_move(self.checkers, move)
-                    if abs(orig_y - grid_y) == 2:
-                        capture_row = (orig_y + grid_y) // 2
-                        capture_col = (orig_x + grid_x) // 2
-                        self.delete_item_at(capture_row, capture_col)
 
-
-
-
-                    if self.board[grid_y][grid_x] == 1:
-                        self.put_down(self.drag_item,grid_x,grid_y)
-
-                        ai_move = select_best_move(self.checkers, 5, "black")
-                        self.checkers = make_move(self.checkers, ai_move)
-                        self.piece_pos_update(ai_move)
+                if self.board[grid_y][grid_x] == 1:
+                    self.put_down(self.drag_item,grid_x,grid_y)
 
                 else:
                     self.put_down(None, None, None, False)
@@ -202,7 +185,6 @@ class Window(QGraphicsView):
 
             self.drag_item = None
             self.check_table()
-            print_board(self.checkers)
 
     def check_table(self):
         board_str = ""
@@ -220,28 +202,15 @@ class Window(QGraphicsView):
                 dest_y = int(input("Enter destination y: "))
 
                 if self.board[src_y][src_x] == 1 and self.board[dest_y][dest_x] == 1:
-                    self.piece_pos_update(((src_y, src_x), (dest_y, dest_x)))
-
-
+                    self.movePieceSignal.emit(src_x, src_y, dest_x, dest_y)
                 else:
                     print("Invalid move. Please try again.")
 
             except ValueError:
                 print("Invalid input. Please enter integers only.")
 
-    def delete_item_at(self, capture_row, capture_col):
-        for item in self.scene.items():
-            if isinstance(item, QGraphicsPixmapItem):
-                pos = item.data(Qt.UserRole + 1)
-                if pos == (capture_row, capture_col):
-                    self.scene.removeItem(item)
 
-    def piece_pos_update(self, move):
-        (src_y, src_x), (dest_y, dest_x) = move
-        if abs(src_y - dest_y) == 2:
-            capture_row = (src_y + dest_y) // 2
-            capture_col = (src_x + dest_x) // 2
-            self.delete_item_at(capture_row, capture_col)
+    def make_move(self,src_x, src_y, dest_x, dest_y):
         item_to_move = None
 
         for item in self.scene.items():
