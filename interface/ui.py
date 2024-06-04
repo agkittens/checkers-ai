@@ -10,7 +10,7 @@ from figures import Figure
 import numpy as np
 from util import *
 from checkers import *
-
+from mitsubishi import  *
 class Window(QGraphicsView):
     movePieceSignal = pyqtSignal(int, int, int, int)
 
@@ -22,7 +22,7 @@ class Window(QGraphicsView):
 
         self.checkers = initialize_board()
         self.player = "white"
-
+        self.mitsubishiR = Mitsubishi()
         self.scene = QGraphicsScene()
 
         # 1 - available
@@ -86,6 +86,7 @@ class Window(QGraphicsView):
         self.one_robotM = QPushButton("Player vs Mitsubishi", self)
         self.one_robotM.resize(250,90)
         self.one_robotM.move(40,350)
+        self.one_robotM.clicked.connect(self.mitsubishiR.connect)
         print('robot player')
         shadow_effect_1 = QGraphicsDropShadowEffect()
         shadow_effect_1.setBlurRadius(15)
