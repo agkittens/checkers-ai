@@ -124,6 +124,19 @@ def minimax(board, depth, alpha, beta, maximizing_player):
                 break
         return min_eval
 
+def select_best_move(board, depth, player):
+    board = deepcopy(board)
+    best_move = None
+    best_eval = float('-inf') if player == "white" else float('inf')
+    for move in get_possible_moves(board, player):
+        new_board = make_move(board, move)
+        move_value = minimax(new_board, depth - 1, -math.inf, math.inf, player == "white")
+        if (player == "white" and move_value > best_eval) or (player == "black" and move_value < best_eval):
+            best_eval = move_value
+            best_move = move
+    return best_move
+
+
 
 def is_game_over(board):
     white_moves = black_moves = 0
@@ -180,17 +193,6 @@ def make_move(board, move):
     return board
 
 
-def select_best_move(board, depth, player):
-    board = deepcopy(board)
-    best_move = None
-    best_eval = float('-inf') if player == "white" else float('inf')
-    for move in get_possible_moves(board, player):
-        new_board = make_move(board, move)
-        move_value = minimax(new_board, depth - 1, -math.inf, math.inf, player == "white")
-        if (player == "white" and move_value > best_eval) or (player == "black" and move_value < best_eval):
-            best_eval = move_value
-            best_move = move
-    return best_move
 
 
 
