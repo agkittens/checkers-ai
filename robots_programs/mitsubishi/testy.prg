@@ -36,57 +36,93 @@
 36 isDone = 0
 37 valueToAdd = 200
 38 waitTime = 3
-39 '
-40 '
-41 WHILE isDone = 0 
-42  GoSub *pickNput
-43  isDone = 1
-44 WEnd
-45 '
-46 Mov j0
-47 End
-48 '
-49 '
+39 a = 0
+40 b = 0
+41 '
+42 '
+43 WHILE isDone = 0
+44  GoSub *pickNput
+45  isDone = 1
+46 WEnd
+47 '
+48 Mov j0
+49 End
 50 '
 51 '
 52 '
-53 *pickNput
-54 p1temp = p1
-55 p1temp.z = p1temp.z - valueToAdd
-56 p0temp = p0
-57 p0temp.z = p0temp.z  - valueToAdd
-58 '
-59 ' ruch
-60 '
-61 Mvs p0
-62 DLY waitTime
-63 '
-64 ' picking up
-65 '
-66 ' ##otwarcie##
-67 '
-68 Mvs p0temp
-69 DLY waitTime
+53 ' ---------------------------------- transformacja pozycji ---------------------------------------------
+54 *transform 
+55 DIM v0(2), v1(2)  
+56 DIM offset(2)      
+57 v0(0) = b1 - b0
+58 v0(1) = b2 - b0
+59 v1(0) = b2 - b0
+60 v1(1) = b2 - b0
+61 offset(0) = offset(0) + a * v0(0) / 8 + b * v1(0) / 8
+62 offset(1) = offset(1) + a * v0(1) / 8 + b * v1(1) / 8
+63 offset(2) = offset(2) + a * v0(2) / 8 + b * v1(2) / 8
+64 '
+65 'setting up p0
+66 '
+67 p0.x = b0.x + offset(0)
+68 p0.y = b0.y + offset(1)
+69 p0.z = b0.z + offset(2)
 70 '
-71 ' ##zamkniecie##
+71 'setting up p1
 72 '
-73 Mvs p0
-74 DLY waitTime
-75 '
-76 Mov j0
+73 p1.x = b0.x + offset(0)
+74 p1.y = b0.y + offset(1)
+75 p1.z = b0.z + offset(2)
+76 Return
 77 '
-78 Mvs p1
-79 DLY waitTime
+78 '
+79 '
 80 '
-81 ' releasing
+81 '
 82 '
-83 Mvs p1temp
-84 DLY waitTime
+83 ' ---------------------------------- przenoszenie ---------------------------------------------
+84 '
 85 '
-86 ' ## otwarcie ##
-87 '
-88 Mvs p1
-89 Return
+86 *pickNput
+87 p1temp = p1
+88 p1temp.z = p1temp.z - valueToAdd
+89 p0temp = p0
+90 p0temp.z = p0temp.z  - valueToAdd
+91 '
+92 ' ruch
+93 '
+94 Mvs p0
+95 DLY waitTime
+96 '
+97 ' picking up
+98 '
+99 ' ##otwarcie##
+100 '
+101 Mvs p0temp
+102 DLY waitTime
+103 '
+104 ' ##zamkniecie##
+105 '
+106 Mvs p0
+107 DLY waitTime
+108 '
+109 Mov j0
+110 '
+111 Mvs p1
+112 DLY waitTime
+113 '
+114 ' releasing
+115 '
+116 Mvs p1temp
+117 DLY waitTime
+118 '
+119 ' ## otwarcie ##
+120 '
+121 Mvs p1
+122 Return
 j0=(0.000,18.350,135.430,0.000,26.380,0.000)
 p0=(393.820,-431.290,318.810,180.000,-0.160,180.000)(7,0)
 p1=(693.820,468.800,318.810,180.000,-0.160,180.000)(7,0)
+b0=(1.000,0.000,0.000,0.000,0.000,0.000,0.000,0.000)(0,0)
+b1=(0.000,0.000,0.000,0.000,0.000,0.000,0.000,0.000)(0,0)
+b2=(0.000,0.000,0.000,0.000,0.000,0.000,0.000,0.000)(0,0)
