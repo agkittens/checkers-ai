@@ -102,12 +102,29 @@ def minimax(board, depth, alpha, beta, maximizing_player):
     board = deepcopy(board)
     if depth == 0 or is_game_over(board):
         return evaluate_board(board)
+    game_over = is_game_over(board)
+    if game_over != 0:
+        return game_over
 
     if maximizing_player:
         max_eval = -math.inf
         for move in get_possible_moves(board, "white"):
             new_board = make_move(board, move)
-            eval = minimax(new_board, depth - 1, alpha, beta, False)
+            if is_capturing_move(move):
+                # Explore all possible further captures
+                additional_captures = get_possible_captures(new_board, move[1])  # Move[1] is the end position of the current piece
+                if additional_captures:
+                    for capture in additional_captures:
+                        further_board = make_move(new_board, capture)
+                        eval = minimax(further_board, depth, alpha, beta, True)  # Continue with the same depth
+                        max_eval = max(max_eval, eval)
+                        alpha = max(alpha, eval)
+                        if max_eval >= beta:
+                            break
+                else:
+                    eval = minimax(new_board, depth - 1, alpha, beta, False)
+            else:
+                eval = minimax(new_board, depth - 1, alpha, beta, False)
             max_eval = max(max_eval, eval)
             alpha = max(alpha, eval)
             if max_eval >= beta:
@@ -117,12 +134,41 @@ def minimax(board, depth, alpha, beta, maximizing_player):
         min_eval = math.inf
         for move in get_possible_moves(board, "black"):
             new_board = make_move(board, move)
-            eval = minimax(new_board, depth - 1, alpha, beta, True)
+            if is_capturing_move(move):
+                # Explore all possible further captures
+                additional_captures = get_possible_captures(new_board, move[1])  # Move[1] is the end position of the current piece
+                if additional_captures:
+                    for capture in additional_captures:
+                        further_board = make_move(new_board, capture)
+                        eval = minimax(further_board, depth, alpha, beta, False)  # Continue with the same depth
+                        min_eval = min(min_eval, eval)
+                        beta = min(beta, eval)
+                        if min_eval <= alpha:
+                            break
+                else:
+                    eval = minimax(new_board, depth - 1, alpha, beta, True)
+            else:
+                eval = minimax(new_board, depth - 1, alpha, beta, True)
             min_eval = min(min_eval, eval)
             beta = min(beta, eval)
             if min_eval <= alpha:
                 break
         return min_eval
+
+
+def is_capturing_move(move):
+    (x0,y0), (x1,y2) = move
+    return abs(x1-x0) == 2
+
+
+def get_possible_captures(board, piece_pos):
+    moves = get_piece_moves(board, *piece_pos)
+    capturing_moves = []
+    for move in moves:
+        if is_capturing_move(move):
+            capturing_moves.append(move)
+    return capturing_moves
+
 
 def select_best_move(board, depth, player):
     board = deepcopy(board)
@@ -136,6 +182,17 @@ def select_best_move(board, depth, player):
             best_move = move
     return best_move
 
+def select_best_capturing_move(board, depth, player, pos):
+    board = deepcopy(board)
+    best_move = None
+    best_eval = float('-inf') if player == "white" else float('inf')
+    for move in get_possible_captures(board, pos):
+        new_board = make_move(board, move)
+        move_value = minimax(new_board, depth - 1, -math.inf, math.inf, player == "white")
+        if (player == "white" and move_value > best_eval) or (player == "black" and move_value < best_eval):
+            best_eval = move_value
+            best_move = move
+    return best_move
 
 
 def is_game_over(board):
@@ -143,15 +200,19 @@ def is_game_over(board):
 
     for row in range(8):
         for col in range(8):
-            if white_moves > 0 and black_moves > 0:
-                return False
             piece = board[row][col]
             if piece in [WHITE_PAWN, WHITE_KING]:
                 white_moves += len(get_piece_moves(board, row, col))
             elif piece in [BLACK_PAWN, BLACK_KING]:
                 black_moves += len(get_piece_moves(board, row, col))
 
-    return True
+    if white_moves == 0:
+        return -100  # Black wins
+    elif black_moves == 0:
+        return 100  # White wins
+    else:
+        return 0  # Game is not over
+
 
 
 def evaluate_board(board):
