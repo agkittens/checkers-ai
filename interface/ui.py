@@ -22,6 +22,9 @@ class Window(QGraphicsView):
 
         self.checkers = initialize_board()
         self.player = "white"
+        self.did_capture = False
+        self.capturing_piece = None
+        self.is_game_over = 0
 
         self.scene = QGraphicsScene()
 
@@ -156,7 +159,7 @@ class Window(QGraphicsView):
             scene_pos = self.mapToScene(event.pos())
             item = self.scene.itemAt(scene_pos, self.transform())
 
-            if item and isinstance(item, QGraphicsPixmapItem):
+            if item and isinstance(item, QGraphicsPixmapItem) and self.is_game_over == 0:
                 self.drag_item = item
                 self.original_pos = item.pos()
                 self.drag_offset = scene_pos - item.pos()
@@ -182,32 +185,91 @@ class Window(QGraphicsView):
 
             if grid_x in range(0,self.slots+1) and grid_y in range(0,self.slots+1):
                 move = ((orig_y, orig_x), (grid_y,grid_x))
-                if move in get_possible_moves(self.checkers, self.player):
-                    self.checkers = make_move(self.checkers, move)
-                    if abs(orig_y - grid_y) == 2:
-                        capture_row = (orig_y + grid_y) // 2
-                        capture_col = (orig_x + grid_x) // 2
-                        self.delete_item_at(capture_row, capture_col)
-
-
-
-
-                    if self.board[grid_y][grid_x] == 1:
-                        self.put_down(self.drag_item,grid_x,grid_y)
-
-                        ai_move = select_best_move(self.checkers, 6, "black")
-                        self.checkers = make_move(self.checkers, ai_move)
-                        ((a, b),(c,d)) = ai_move
-                        self.make_move(b,a,d,c)
-
+                if self.did_capture:
+                    self.handle_capturing_move(move)
                 else:
-                    self.put_down(None, None, None, False)
+                    self.handle_normal_move(move)
 
             else:
                 self.put_down(None, None, None, False)
 
             self.drag_item = None
             self.check_table()
+
+    def handle_normal_move(self, move):
+        if move in get_possible_moves(self.checkers, self.player):
+            ((orig_y, orig_x), (grid_y, grid_x)) = move
+
+            self.checkers = make_move(self.checkers, move)
+            if abs(orig_y - grid_y) == 2:
+                capture_row = (orig_y + grid_y) // 2
+                capture_col = (orig_x + grid_x) // 2
+                self.delete_item_at(capture_row, capture_col)
+
+                captures = get_possible_captures(self.checkers, move[1])
+                if len(captures) > 0:
+                    self.did_capture = True
+                    self.capturing_piece = move[1]
+                    self.put_down(self.drag_item, grid_x, grid_y)
+                    return
+
+            self.put_down(self.drag_item, grid_x, grid_y)
+            self.is_game_over = is_game_over(self.checkers)
+            if self.is_game_over != 0:
+                return
+            self.do_ai_move()
+
+        else:
+            self.put_down(None, None, None, False)
+
+    def handle_capturing_move(self, move):
+        if move in get_possible_captures(self.checkers, self.capturing_piece):
+            ((orig_y, orig_x), (grid_y, grid_x)) = move
+
+            self.checkers = make_move(self.checkers, move)
+            capture_row = (orig_y + grid_y) // 2
+            capture_col = (orig_x + grid_x) // 2
+            self.delete_item_at(capture_row, capture_col)
+            self.put_down(self.drag_item, grid_x, grid_y)
+
+            captures = get_possible_captures(self.checkers, move[1])
+            if len(captures) > 0:
+                self.did_capture = True
+                self.capturing_piece = move[1]
+                return
+            else:
+                self.did_capture = False
+                self.capturing_piece = None
+
+            self.is_game_over = is_game_over(self.checkers)
+            if self.is_game_over != 0:
+                return
+            self.do_ai_move()
+
+        else:
+            self.put_down(None, None, None, False)
+
+    def do_ai_move(self):
+        if self.did_capture:
+            ai_move = select_best_capturing_move(self.checkers, 6, "black", self.capturing_piece)
+            self.checkers = make_move(self.checkers, ai_move)
+            ((a, b), (c, d)) = ai_move
+            self.make_move(b, a, d, c)
+        else:
+            ai_move = select_best_move(self.checkers, 6, "black")
+            self.checkers = make_move(self.checkers, ai_move)
+            ((a, b), (c, d)) = ai_move
+            self.make_move(b, a, d, c)
+        self.is_game_over = is_game_over(self.checkers)
+        if self.is_game_over != 0:
+            return
+        if is_capturing_move(ai_move):
+            captures = get_possible_captures(self.checkers, ai_move[1])
+            if len(captures) > 0:
+                self.did_capture = True
+                self.capturing_piece = ai_move[1]
+                time.sleep(1)
+                self.do_ai_move()
 
     def check_table(self):
         board_str = ""
