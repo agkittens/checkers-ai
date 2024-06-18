@@ -1,6 +1,5 @@
 import sys
 import threading
-import time
 
 from PyQt5.QtGui import QColor, QImage, QPixmap, QPen
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsRectItem, QApplication, QGraphicsPixmapItem, \
@@ -10,7 +9,7 @@ from figures import Figure
 import numpy as np
 from util import *
 from checkers import *
-from main import *
+
 
 class Window(QGraphicsView):
     movePieceSignal = pyqtSignal(int, int, int, int)
@@ -20,14 +19,6 @@ class Window(QGraphicsView):
         self.title = "Checkers"
         self.width = self.height = 600
         self.slots = 8
-
-        self.checkers = initialize_board()
-        self.player = "white"
-        self.did_capture = False
-        self.capturing_piece = None
-        self.is_game_over = 0
-
-        self.manager = Manager()
 
         self.scene = QGraphicsScene()
 
@@ -82,9 +73,7 @@ class Window(QGraphicsView):
         self.one_robotK = QPushButton("Player vs Kawasaki", self)
         self.one_robotK.resize(250,90)
         self.one_robotK.move(40,200)
-        self.one_robotK.clicked.connect(lambda: self.manager.add_robot("kawasaki"))
-
-
+        print('robot player')
         shadow_effect = QGraphicsDropShadowEffect()
         shadow_effect.setBlurRadius(15)
         shadow_effect.setColor(QColor(145, 90, 87, 127))
@@ -94,8 +83,7 @@ class Window(QGraphicsView):
         self.one_robotM = QPushButton("Player vs Mitsubishi", self)
         self.one_robotM.resize(250,90)
         self.one_robotM.move(40,350)
-        self.one_robotM.clicked.connect(lambda: self.manager.add_robot("mitsubishi"))
-
+        print('robot player')
         shadow_effect_1 = QGraphicsDropShadowEffect()
         shadow_effect_1.setBlurRadius(15)
         shadow_effect_1.setColor(QColor(145, 90, 87, 127))
@@ -105,15 +93,13 @@ class Window(QGraphicsView):
         self.two_robots = QPushButton("Kawasaki Vs Mitsubishi", self)
         self.two_robots.resize(250,90)
         self.two_robots.move(40,500)
-        self.two_robots.clicked.connect(lambda: (self.manager.add_robot("mitsubishi"), self.manager.add_robot("kawasaki")))
-
+        print('robots')
         shadow_effect_2 = QGraphicsDropShadowEffect()
         shadow_effect_2.setBlurRadius(15)
         shadow_effect_2.setColor(QColor(145, 90, 87, 127))
         shadow_effect_2.setOffset(0, 7)
         self.two_robots.setGraphicsEffect(shadow_effect_2)
         self.setStyleSheet(STYLE_BUTTON)
-
 
     def create_board(self):
         size_w = self.width / self.slots
@@ -163,13 +149,11 @@ class Window(QGraphicsView):
                 self.white.append(item)
 
     def mousePressEvent(self, event):
-
         if event.button() == Qt.LeftButton:
-
             scene_pos = self.mapToScene(event.pos())
             item = self.scene.itemAt(scene_pos, self.transform())
 
-            if item and isinstance(item, QGraphicsPixmapItem) and self.is_game_over == 0:
+            if item and isinstance(item, QGraphicsPixmapItem):
                 self.drag_item = item
                 self.original_pos = item.pos()
                 self.drag_offset = scene_pos - item.pos()
@@ -190,96 +174,19 @@ class Window(QGraphicsView):
             grid_x = round((scene_pos.x() - self.drag_offset.x() - 8) / grid_size)
             grid_y = round((scene_pos.y() - self.drag_offset.y() - 8) / grid_size)
 
-            orig_x = round((self.original_pos.x() - 8) / grid_size)
-            orig_y = round((self.original_pos.y() - 8) / grid_size)
-
             if grid_x in range(0,self.slots+1) and grid_y in range(0,self.slots+1):
-                move = ((orig_y, orig_x), (grid_y,grid_x))
-                if self.did_capture:
-                    self.handle_capturing_move(move)
+
+                if self.board[grid_y][grid_x] == 1:
+                    self.put_down(self.drag_item,grid_x,grid_y)
+
                 else:
-                    self.handle_normal_move(move)
+                    self.put_down(None, None, None, False)
 
             else:
                 self.put_down(None, None, None, False)
 
             self.drag_item = None
             self.check_table()
-
-    def handle_normal_move(self, move):
-        if move in get_possible_moves(self.checkers, self.player):
-            ((orig_y, orig_x), (grid_y, grid_x)) = move
-
-            self.checkers = make_move(self.checkers, move)
-            if abs(orig_y - grid_y) == 2:
-                capture_row = (orig_y + grid_y) // 2
-                capture_col = (orig_x + grid_x) // 2
-                self.delete_item_at(capture_row, capture_col)
-
-                captures = get_possible_captures(self.checkers, move[1])
-                if len(captures) > 0:
-                    self.did_capture = True
-                    self.capturing_piece = move[1]
-                    self.put_down(self.drag_item, grid_x, grid_y)
-                    return
-
-            self.put_down(self.drag_item, grid_x, grid_y)
-            self.is_game_over = is_game_over(self.checkers)
-            if self.is_game_over != 0:
-                return
-            self.do_ai_move()
-
-        else:
-            self.put_down(None, None, None, False)
-
-    def handle_capturing_move(self, move):
-        if move in get_possible_captures(self.checkers, self.capturing_piece):
-            ((orig_y, orig_x), (grid_y, grid_x)) = move
-
-            self.checkers = make_move(self.checkers, move)
-            capture_row = (orig_y + grid_y) // 2
-            capture_col = (orig_x + grid_x) // 2
-            self.delete_item_at(capture_row, capture_col)
-            self.put_down(self.drag_item, grid_x, grid_y)
-
-            captures = get_possible_captures(self.checkers, move[1])
-            if len(captures) > 0:
-                self.did_capture = True
-                self.capturing_piece = move[1]
-                return
-            else:
-                self.did_capture = False
-                self.capturing_piece = None
-
-            self.is_game_over = is_game_over(self.checkers)
-            if self.is_game_over != 0:
-                return
-            self.do_ai_move()
-
-        else:
-            self.put_down(None, None, None, False)
-
-    def do_ai_move(self):
-        if self.did_capture:
-            ai_move = select_best_capturing_move(self.checkers, 6, "black", self.capturing_piece)
-            self.checkers = make_move(self.checkers, ai_move)
-            ((a, b), (c, d)) = ai_move
-            self.make_move(b, a, d, c)
-        else:
-            ai_move = select_best_move(self.checkers, 6, "black")
-            self.checkers = make_move(self.checkers, ai_move)
-            ((a, b), (c, d)) = ai_move
-            self.make_move(b, a, d, c)
-        self.is_game_over = is_game_over(self.checkers)
-        if self.is_game_over != 0:
-            return
-        if is_capturing_move(ai_move):
-            captures = get_possible_captures(self.checkers, ai_move[1])
-            if len(captures) > 0:
-                self.did_capture = True
-                self.capturing_piece = ai_move[1]
-                time.sleep(1)
-                self.do_ai_move()
 
     def check_table(self):
         board_str = ""
@@ -304,18 +211,8 @@ class Window(QGraphicsView):
             except ValueError:
                 print("Invalid input. Please enter integers only.")
 
-    def delete_item_at(self, capture_row, capture_col):
-        for item in self.scene.items():
-            if isinstance(item, QGraphicsPixmapItem):
-                pos = item.data(Qt.UserRole + 1)
-                if pos == (capture_row, capture_col):
-                    self.scene.removeItem(item)
 
     def make_move(self,src_x, src_y, dest_x, dest_y):
-        if abs(src_y - dest_y) == 2:
-            capture_row = (src_y + dest_y) // 2
-            capture_col = (src_x + dest_x) // 2
-            self.delete_item_at(capture_row, capture_col)
         item_to_move = None
 
         for item in self.scene.items():
@@ -366,3 +263,4 @@ def main():
     sys.exit(app.exec_())
 
 main()
+
