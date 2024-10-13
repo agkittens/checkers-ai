@@ -22,7 +22,7 @@ class Window(QGraphicsView):
         self.slots = 8
 
         self.checkers = initialize_board()
-        self.player = "white"
+        self.player = "red"
         self.did_capture = False
         self.capturing_piece = None
         self.is_game_over = 0
@@ -312,6 +312,8 @@ class Window(QGraphicsView):
             self.put_down(None, None, None, False)
 
     def do_ai_move(self):
+        self.player = "white"
+        self.current_turn += 1
         if self.did_capture:
             ai_move = select_best_capturing_move(self.checkers, 6, "black", self.capturing_piece)
             self.checkers = make_move(self.checkers, ai_move)
@@ -332,6 +334,7 @@ class Window(QGraphicsView):
                 self.capturing_piece = ai_move[1]
                 time.sleep(1)
                 self.do_ai_move()
+        self.player = "red"
 
     def check_table(self):
         board_str = ""
@@ -362,6 +365,7 @@ class Window(QGraphicsView):
                 pos = item.data(Qt.UserRole + 1)
                 if pos == (capture_row, capture_col):
                     self.scene.removeItem(item)
+                    self.score[self.player] += 1
 
     def make_move(self, src_x, src_y, dest_x, dest_y):
         if abs(src_y - dest_y) == 2:
