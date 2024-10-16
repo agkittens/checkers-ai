@@ -24,7 +24,9 @@ def initialize_board():
     return board
 
 
-def get_possible_moves(board, player):
+def get_possible_moves(board, player,from_ui=False):
+    if from_ui:
+        player = convert_ui_player(player)
     moves = []
     for row in range(8):
         for col in range(8):
@@ -160,6 +162,14 @@ def is_capturing_move(move):
     (x0,y0), (x1,y2) = move
     return abs(x1-x0) == 2
 
+def check_valid_human(board, did_capture, piece, move):
+    if did_capture:
+        valid_moves = get_possible_captures(board, piece)
+    else:
+        valid_moves = get_possible_moves(board, "white")
+
+    return move in valid_moves
+
 
 def get_possible_captures(board, piece_pos):
     moves = get_piece_moves(board, *piece_pos)
@@ -168,7 +178,11 @@ def get_possible_captures(board, piece_pos):
         if is_capturing_move(move):
             capturing_moves.append(move)
     return capturing_moves
-
+def can_capture_more(board, src_x, src_y, dest_x, dest_y):
+    if is_capturing_move(((src_x, src_y), (dest_x, dest_y))):
+        captures = get_possible_captures(board, (dest_y, dest_x))
+        return bool(captures)
+    return False
 
 def select_best_move(board, depth, player):
     board = deepcopy(board)
@@ -296,6 +310,21 @@ def get_human_move(board, player):
         except ValueError:
             print("Invalid input. Please enter the position like: '2,3'.")
 
+def ai_logic(board, did_capture, piece):
+    if did_capture:
+        ai_move = select_best_capturing_move(board, 6, "black", piece)
+    else:
+        ai_move = select_best_move(board, 6, "black")
+
+    board = make_move(board, ai_move)
+    ((a, b), (c, d)) = ai_move
+    return b, a, d, c
+
+def convert_ui_player(player):
+    if player == "white":
+        return "black"
+    else:
+        return "white"
 
 def print_board(board):
     piece_symbols = {
