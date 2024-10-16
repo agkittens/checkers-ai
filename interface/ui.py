@@ -2,15 +2,13 @@ import time
 from PyQt5.QtGui import QColor, QImage, QPixmap, QPen, QFont, QPainterPath, QRegion
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsRectItem, QApplication, QGraphicsPixmapItem, \
     QPushButton, QGraphicsDropShadowEffect, QLabel
-from PyQt5.QtCore import Qt, QPointF, pyqtSignal, QRectF
+from PyQt5.QtCore import Qt, QPointF, pyqtSignal, QRectF, QTimer
 import numpy as np
 from interface.util import *
 from checkers import *
 from manager import *
 from interface.figures import Figure
 
-# TODO: please add scoring using self.score edict and turn change using self.current_turn (both things already on ui)
-# TODO: also consider moving game events to a new file non related to "static" ui objects
 
 class Window(QGraphicsView):
     movePieceSignal = pyqtSignal(int, int, int, int)
@@ -178,12 +176,12 @@ class Window(QGraphicsView):
 
         self.turn.setStyleSheet(STYLE)
 
-
     def update_turn(self):
-        if self.current_turn % 2 == 0:
+        if self.player == "white":
             self.turn.setText("WHITE'S TURN")
-        elif self.current_turn % 2 == 1:
+        elif self.player == "red":
             self.turn.setText("RED'S TURN")
+        QApplication.processEvents()
 
     def show_scoreboard(self):
         self.sc = QLabel()
@@ -213,9 +211,7 @@ class Window(QGraphicsView):
         polygon = path.toFillPolygon().toPolygon()
         object.setMask(QRegion(polygon))
 
-
     def mousePressEvent(self, event):
-
         if event.button() == Qt.LeftButton:
 
             scene_pos = self.mapToScene(event.pos())
@@ -255,8 +251,9 @@ class Window(QGraphicsView):
             self.drag_item = None
             self.check_table()
 
+
     def handle_move(self, move):
-        if check_valid_human(self.checkers,self.did_capture,self.capturing_piece,move):
+        if check_valid_human(self.checkers, self.did_capture, self.capturing_piece, move):
             ((orig_y, orig_x), (grid_y, grid_x)) = move
 
             self.checkers = make_move(self.checkers, move)
@@ -280,12 +277,17 @@ class Window(QGraphicsView):
             if self.is_game_over:
                 return
 
-            self.do_ai_move()
+            QTimer.singleShot(200, self.do_ai_move)
+
+
         else:
             self.put_down(None, None, None, False)
 
     def do_ai_move(self):
         self.player = "white"
+        self.refresh_scene()
+        self.update_turn()
+
         self.current_turn += 1
 
         src_x, src_y, dest_x, dest_y = ai_logic(self.checkers, self.did_capture, self.capturing_piece)
@@ -297,12 +299,15 @@ class Window(QGraphicsView):
 
         if can_capture_more(self.checkers, src_x, src_y, dest_x, dest_y):
             self.did_capture = True
-            self.capturing_piece = (dest_y,dest_x)
+            self.capturing_piece = (dest_y, dest_x)
             self.do_ai_move()
         else:
             self.did_capture = False
 
         self.player = "red"
+        self.refresh_scene()
+        self.update_turn()
+
     def check_table(self):
         board_str = ""
         for row in self.fig.figures_board:
