@@ -1,7 +1,8 @@
+import threading
 import time
 from PyQt5.QtGui import QColor, QImage, QPixmap, QPen, QFont, QPainterPath, QRegion
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsRectItem, QApplication, QGraphicsPixmapItem, \
-    QPushButton, QGraphicsDropShadowEffect, QLabel
+    QPushButton, QGraphicsDropShadowEffect, QLabel, QWidget
 from PyQt5.QtCore import Qt, QPointF, pyqtSignal, QRectF, QTimer
 import numpy as np
 from interface.util import *
@@ -10,8 +11,29 @@ from manager import *
 from interface.figures import Figure
 
 
-class Window(QGraphicsView):
+
+class GameWindow(QGraphicsView):
     movePieceSignal = pyqtSignal(int, int, int, int)
+
+    @staticmethod
+    def round_label(round_obj):
+        round_obj.setAutoFillBackground(True)
+        palette = round_obj.palette()
+        palette.setColor(round_obj.backgroundRole(), QColor("#e36f70"))
+        round_obj.setPalette(palette)
+
+        path = QPainterPath()
+        rect = QRectF(round_obj.rect())
+        path.addRoundedRect(rect, 10, 10)
+        polygon = path.toFillPolygon().toPolygon()
+        round_obj.setMask(QRegion(polygon))
+
+    @staticmethod
+    def add_shadow(shadow_obj, shadow_name):
+        shadow_name.setBlurRadius(15)
+        shadow_name.setColor(QColor(145, 90, 87, 127))
+        shadow_name.setOffset(0, 7)
+        shadow_obj.setGraphicsEffect(shadow_name)
 
     def __init__(self):
         super().__init__()
@@ -86,34 +108,17 @@ class Window(QGraphicsView):
         self.one_robotK.move(40, 200)
         self.one_robotK.clicked.connect(lambda: self.manager.add_robot("kawasaki"))
 
-        shadow_effect = QGraphicsDropShadowEffect()
-        shadow_effect.setBlurRadius(15)
-        shadow_effect.setColor(QColor(145, 90, 87, 127))
-        shadow_effect.setOffset(0, 7)
-        self.one_robotK.setGraphicsEffect(shadow_effect)
+        kawa_shadow = QGraphicsDropShadowEffect()
+        self.add_shadow(self.one_robotK, kawa_shadow)
 
         self.one_robotM = QPushButton("Player vs Mitsubishi", self)
         self.one_robotM.resize(250, 90)
         self.one_robotM.move(40, 350)
         self.one_robotM.clicked.connect(lambda: self.manager.add_robot("mitsubishi"))
 
-        shadow_effect_1 = QGraphicsDropShadowEffect()
-        shadow_effect_1.setBlurRadius(15)
-        shadow_effect_1.setColor(QColor(145, 90, 87, 127))
-        shadow_effect_1.setOffset(0, 7)
-        self.one_robotM.setGraphicsEffect(shadow_effect_1)
+        mitsu_shadow = QGraphicsDropShadowEffect()
+        self.add_shadow(self.one_robotM, mitsu_shadow)
 
-        self.two_robots = QPushButton("Kawasaki Vs Mitsubishi", self)
-        self.two_robots.resize(250, 90)
-        self.two_robots.move(40, 500)
-        self.two_robots.clicked.connect(
-            lambda: (self.manager.add_robot("mitsubishi"), self.manager.add_robot("kawasaki")))
-
-        shadow_effect_2 = QGraphicsDropShadowEffect()
-        shadow_effect_2.setBlurRadius(15)
-        shadow_effect_2.setColor(QColor(145, 90, 87, 127))
-        shadow_effect_2.setOffset(0, 7)
-        self.two_robots.setGraphicsEffect(shadow_effect_2)
         self.setStyleSheet(STYLE)
 
     def create_board(self):
@@ -198,18 +203,6 @@ class Window(QGraphicsView):
 
     def update_scoreboard(self):
         self.sc.setText(f"WHITE: {self.score['white']}\nRED: {self.score['red']}")
-
-    def round_label(self, object):
-        object.setAutoFillBackground(True)
-        palette = object.palette()
-        palette.setColor(object.backgroundRole(), QColor("#e36f70"))
-        object.setPalette(palette)
-
-        path = QPainterPath()
-        rect = QRectF(object.rect())
-        path.addRoundedRect(rect, 10, 10)
-        polygon = path.toFillPolygon().toPolygon()
-        object.setMask(QRegion(polygon))
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
