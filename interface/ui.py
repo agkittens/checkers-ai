@@ -1,15 +1,12 @@
-import threading
-import time
-from PyQt5.QtGui import QColor, QImage, QPixmap, QPen, QFont, QPainterPath, QRegion
-from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsRectItem, QApplication, QGraphicsPixmapItem, \
-    QPushButton, QGraphicsDropShadowEffect, QLabel, QWidget
+from PyQt5.QtGui import QColor, QImage, QPixmap, QFont, QPainterPath, QRegion
+from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QApplication, QGraphicsPixmapItem, \
+    QPushButton, QGraphicsDropShadowEffect, QLabel
 from PyQt5.QtCore import Qt, QPointF, pyqtSignal, QRectF, QTimer
 import numpy as np
 from interface.util import *
 from checkers import *
 from manager import *
-from interface.figures import Figure
-
+from interface.checkers_elements import Figure, Board
 
 
 class GameWindow(QGraphicsView):
@@ -38,9 +35,8 @@ class GameWindow(QGraphicsView):
     def __init__(self):
         super().__init__()
         self.title = "Checkers"
-        self.width = self.height = 600
-        self.slots = 8
-
+        self.board_size = 600
+        self.board = Board(self.board_size)
         self.checkers = initialize_board()
         self.player = "red"
         self.did_capture = False
@@ -53,19 +49,7 @@ class GameWindow(QGraphicsView):
 
         self.scene = QGraphicsScene()
 
-        # 1 - available
-        # 0 - not available
-        self.board = np.array([[0, 1, 0, 1, 0, 1, 0, 1],
-                               [1, 0, 1, 0, 1, 0, 1, 0],
-                               [0, 1, 0, 1, 0, 1, 0, 1],
-                               [1, 0, 1, 0, 1, 0, 1, 0],
-                               [0, 1, 0, 1, 0, 1, 0, 1],
-                               [1, 0, 1, 0, 1, 0, 1, 0],
-                               [0, 1, 0, 1, 0, 1, 0, 1],
-                               [1, 0, 1, 0, 1, 0, 1, 0]])
-
         self.fig = Figure()
-        self.red_img, self.white_img = self.fig.load_figures()
         self.red, self.white = [], []
         self.drag_item = None
         self.drag_offset = QPointF()
@@ -76,11 +60,11 @@ class GameWindow(QGraphicsView):
 
     def create_window(self):
         self.setWindowTitle(self.title)
-        self.setGeometry(0, 0, self.width, self.height)
-        self.setSceneRect(0, 0, self.width, self.height)
+        self.setGeometry(0, 0, self.board_size, self.board_size)
+        self.setSceneRect(0, 0, self.board_size, self.board_size)
         self.setScene(self.scene)
 
-        self.create_board()
+        self.board.create_board(self.scene, self.board_size)
         self.place_figures()
         self.load_bg()
         self.add_buttons()
@@ -121,52 +105,23 @@ class GameWindow(QGraphicsView):
 
         self.setStyleSheet(STYLE)
 
-    def create_board(self):
-        size_w = self.width / self.slots
-        size_h = self.height / self.slots
-
-        color1 = QColor(COLOR1)
-        color2 = QColor(COLOR2)
-        color3 = QColor(COLOR4)
-
-        border_item = QGraphicsRectItem(0, 0, self.width, self.height)
-        border_pen = QPen(QColor(color3))
-        border_pen.setWidth(15)
-        border_item.setPen(border_pen)
-        self.scene.addItem(border_item)
-
-        for i in range(self.slots):
-            for j in range(self.slots):
-                rect_item = QGraphicsRectItem(0 + i * size_w, 0 + j * size_h, size_w, size_h)
-
-                if self.board[i][j] == 0:
-                    rect_item.setBrush(color2)
-                elif self.board[i][j] == 1:
-                    rect_item.setBrush(color1)
-
-                self.scene.addItem(rect_item)
-
     def place_figures(self):
-        indices = np.argwhere(self.board == 1)
+        indices = np.argwhere(self.board.board == 1)
+        red_img, white_img = self.fig.load_figures()
 
         for idx in indices:
-            key = self.fig.figures_board[idx[0]][idx[1]]
+            key = self.fig.get_slot_key(idx)
 
-            if key == "r":
-                item = self.scene.addPixmap(self.red_img[f'{key}'])
+            if key in ["r", "w"]:
+                image = red_img if key == "r" else white_img
+
+                item = self.scene.addPixmap(image[f'{key}'])
                 item.setPos(8 + idx[1] * 75, 8 + idx[0] * 75)
                 item.setData(Qt.UserRole, key)
                 item.setData(Qt.UserRole + 1, (idx[0], idx[1]))
                 item.setZValue(1)
-                self.red.append(item)
 
-            if key == "w":
-                item = self.scene.addPixmap(self.white_img[f'{key}'])
-                item.setPos(8 + idx[1] * 75, 8 + idx[0] * 75)
-                item.setData(Qt.UserRole, key)
-                item.setData(Qt.UserRole + 1, (idx[0], idx[1]))
-                item.setZValue(1)
-                self.white.append(item)
+                self.red.append(item) if key == "r" else self.white.append(item)
 
     def show_turn(self):
         self.turn = QLabel()
@@ -206,7 +161,6 @@ class GameWindow(QGraphicsView):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-
             scene_pos = self.mapToScene(event.pos())
             item = self.scene.itemAt(scene_pos, self.transform())
 
@@ -227,23 +181,21 @@ class GameWindow(QGraphicsView):
     def mouseReleaseEvent(self, event):
         if self.drag_item:
             scene_pos = self.mapToScene(event.pos())
-            grid_size = self.width / self.slots
-            grid_x = round((scene_pos.x() - self.drag_offset.x() - 8) / grid_size)
-            grid_y = round((scene_pos.y() - self.drag_offset.y() - 8) / grid_size)
 
-            orig_x = round((self.original_pos.x() - 8) / grid_size)
-            orig_y = round((self.original_pos.y() - 8) / grid_size)
+            dest_x = round((scene_pos.x() - self.drag_offset.x() - 8) / self.board.slot_size)
+            dest_y = round((scene_pos.y() - self.drag_offset.y() - 8) / self.board.slot_size)
+            orig_x = round((self.original_pos.x() - 8) / self.board.slot_size)
+            orig_y = round((self.original_pos.y() - 8) / self.board.slot_size)
 
-            if grid_x in range(0, self.slots + 1) and grid_y in range(0, self.slots + 1):
-                move = ((orig_y, orig_x), (grid_y, grid_x))
+            if dest_x in range(0, self.board.slots + 1) and dest_y in range(0, self.board.slots + 1):
+                move = ((orig_y, orig_x), (dest_y, dest_x))
                 self.handle_move(move)
 
             else:
                 self.put_down(None, None, None, False)
 
             self.drag_item = None
-            self.check_table()
-
+            self.fig.check_table()
 
     def handle_move(self, move):
         if check_valid_human(self.checkers, self.did_capture, self.capturing_piece, move):
@@ -301,13 +253,6 @@ class GameWindow(QGraphicsView):
         self.refresh_scene()
         self.update_turn()
 
-    def check_table(self):
-        board_str = ""
-        for row in self.fig.figures_board:
-            row_str = " ".join([str(elem) if elem is not None else '.' for elem in row])
-            board_str += row_str + "\n"
-        print(board_str)
-
     def type_move(self):
         while True:
             try:
@@ -316,7 +261,7 @@ class GameWindow(QGraphicsView):
                 dest_x = int(input("Enter destination x: "))
                 dest_y = int(input("Enter destination y: "))
 
-                if self.board[src_y][src_x] == 1 and self.board[dest_y][dest_x] == 1:
+                if self.board.board[src_y][src_x] == 1 and self.board.board[dest_y][dest_x] == 1:
                     self.movePieceSignal.emit(src_x, src_y, dest_x, dest_y)
                 else:
                     print("Invalid move. Please try again.")
@@ -350,7 +295,7 @@ class GameWindow(QGraphicsView):
             self.fig.change_fig_pos(None, src_y, src_x)
             self.put_down(item_to_move, dest_x, dest_y)
 
-            self.check_table()
+            self.fig.check_table()
             self.refresh_scene()
             self.update_turn()
             self.update_scoreboard()
@@ -360,7 +305,7 @@ class GameWindow(QGraphicsView):
 
     def put_down(self, item, x, y, correct=True):
         if correct:
-            grid_size = self.width / self.slots
+            grid_size = self.board_size / self.board.slots
             final_x = x * grid_size + 8
             final_y = y * grid_size + 8
 
@@ -380,4 +325,3 @@ class GameWindow(QGraphicsView):
     def refresh_scene(self):
         for item in self.scene.items():
             item.update()
-

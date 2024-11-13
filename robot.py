@@ -4,6 +4,7 @@ class Robot:
 
     def __init__(self):
         self.ip = ""
+        self.host = "192.168.0.200"
         self.port = 10001
         self.connection = None
         self.is_connected = False
@@ -25,6 +26,22 @@ class Robot:
             self.is_connected = True
             print("Connected to robot at {}:{}".format(self.ip, self.port))
 
+            if self.connection:
+                print('conncted')
+                while True:
+                    self.send_data("5", None)
+            # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            #     s.bind((self.host, self.port))
+            #     s.listen()
+            #     print("Server is listening on", self.host, ":", self.port)
+            #
+            #     # Wait for the client (Melfa Basic V) to connect
+            #     conn, addr = s.accept()
+            #     with conn:
+            #         print('Connected by', addr)
+            #
+
+
         except ConnectionRefusedError:
             print("Connection to robot at {}:{} refused".format(self.ip, self.port))
             self.is_connected = False
@@ -34,11 +51,14 @@ class Robot:
 
 
     def send_data(self,p1,p2):
-        data = p1
+        dataS = p1
+        dataE = p2
         if self.is_connected and self.is_available:
             try:
-                self.connection.sendall(data.encode('ascii'))
-                print("Data sent to robot: {}".format(data))
+                self.connection.sendall(dataS.encode('ascii'))
+                print("Data sent to robot: {}".format(dataS))
+                # self.connection.sendall(dataE.encode('ascii'))
+                # print("Data sent to robot: {}".format(dataE))
             except Exception as e:
                 print("Failed to send data to robot due to error: {}".format(str(e)))
         else:
@@ -70,6 +90,5 @@ if __name__ == "__main__":
     robot.connect()
     print(robot.is_connected, robot.is_available)
 
-    while True:
-            robot.send_data('test','aa')
-            robot.receive_status()
+    # robot.send_data('5','aa')
+    robot.receive_status()
