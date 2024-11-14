@@ -267,31 +267,6 @@ def make_move(board, move):
 
     return board
 
-
-
-
-
-
-def play_checkers():
-    board = initialize_board()
-    current_player = "white"
-
-    while not is_game_over(board):
-        print_board(board)
-
-        if current_player == "white":
-            print("White AI is thinking...")
-            move = select_best_move(board, 2, "white")
-            if move:
-                board = make_move(board, move)
-            current_player = "black"
-        else:
-            print("Black player's turn")
-            move = get_human_move(board, "black")
-            if move:
-                board = make_move(board, move)
-            current_player = "white"
-
 def get_human_move(board, player):
     while True:
         try:
@@ -325,19 +300,3 @@ def convert_ui_player(player):
         return "black"
     else:
         return "white"
-
-def print_board(board):
-    piece_symbols = {
-        EMPTY: ".",
-        WHITE_PAWN: "w",
-        WHITE_KING: "W",
-        BLACK_PAWN: "b",
-        BLACK_KING: "B"
-    }
-
-    for row in range(8):
-        print(" ".join(piece_symbols[piece] for piece in board[row]))
-    print()
-
-if __name__ == "__main__":
-    play_checkers()

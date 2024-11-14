@@ -253,21 +253,8 @@ class GameWindow(QGraphicsView):
         self.refresh_scene()
         self.update_turn()
 
-    def type_move(self):
-        while True:
-            try:
-                src_x = int(input("Enter source x: "))
-                src_y = int(input("Enter source y: "))
-                dest_x = int(input("Enter destination x: "))
-                dest_y = int(input("Enter destination y: "))
-
-                if self.board.board[src_y][src_x] == 1 and self.board.board[dest_y][dest_x] == 1:
-                    self.movePieceSignal.emit(src_x, src_y, dest_x, dest_y)
-                else:
-                    print("Invalid move. Please try again.")
-
-            except ValueError:
-                print("Invalid input. Please enter integers only.")
+    # def type_move(s
+    # Invalid input. Please enter integers only.")
 
     def delete_item_at(self, capture_row, capture_col):
         for item in self.scene.items():
