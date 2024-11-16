@@ -2,10 +2,16 @@ import socket
 
 class Robot:
 
-    def __init__(self):
-        self.ip = ""
+    def __init__(self, target="mitsubishi"):
+        if target == "mitsubishi":
+            self.ip = "192.168.0.210"
+            self.port = 10001
+        else:
+            self.ip = "192.168.0.220"
+            self.port = 49152
+        self.target = target
+
         self.host = "192.168.0.200"
-        self.port = 10001
         self.connection = None
         self.is_connected = False
         self.is_available = True
@@ -24,12 +30,11 @@ class Robot:
             # Connect the socket to the server
             self.connection.connect((self.ip, self.port))
             self.is_connected = True
-            print("Connected to robot at {}:{}".format(self.ip, self.port))
+            print("Connecting to robot at {}:{}".format(self.ip, self.port))
 
             if self.connection:
-                print('conncted')
-                while True:
-                    self.send_data("5", None)
+                print('conncted to ' + self.target)
+
             # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             #     s.bind((self.host, self.port))
             #     s.listen()
@@ -51,12 +56,16 @@ class Robot:
 
 
     def send_data(self,p1,p2):
-        dataS = p1
-        dataE = p2
+        if self.target == "kawasaki":
+            data= str(7-p1[0])+str(p1[1]) +str(7-p2[0])+str(p2[1])
+        else:
+            data= str(7-p1[0])+str(7-p1[1]) +str(7-p2[0])+str(7-p2[1])
+
+
         if self.is_connected and self.is_available:
             try:
-                self.connection.sendall(dataS.encode('ascii'))
-                print("Data sent to robot: {}".format(dataS))
+                self.connection.sendall(data.encode('ascii'))
+                print("Data sent to robot: {}".format(data))
                 # self.connection.sendall(dataE.encode('ascii'))
                 # print("Data sent to robot: {}".format(dataE))
             except Exception as e:

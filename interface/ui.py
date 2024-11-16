@@ -209,6 +209,8 @@ class GameWindow(QGraphicsView):
                 self.delete_item_at(capture_row, capture_col)
 
             self.put_down(self.drag_item, grid_x, grid_y)
+            self.manager.transmit("kawasaki", *move)
+            self.manager.receive("kawasaki")
 
             if get_possible_captures(self.checkers, move[1]):
                 self.did_capture = True
@@ -229,6 +231,7 @@ class GameWindow(QGraphicsView):
             self.put_down(None, None, None, False)
 
     def do_ai_move(self):
+
         self.player = "white"
         self.refresh_scene()
         self.update_turn()
@@ -237,6 +240,8 @@ class GameWindow(QGraphicsView):
 
         src_x, src_y, dest_x, dest_y = ai_logic(self.checkers, self.did_capture, self.capturing_piece)
         self.make_move(src_x, src_y, dest_x, dest_y)
+        self.manager.transmit("kawasaki", [src_x,src_y], [dest_x, dest_y])
+        self.manager.receive("kawasaki")
 
         self.is_game_over = is_game_over(self.checkers)
         if self.is_game_over:
