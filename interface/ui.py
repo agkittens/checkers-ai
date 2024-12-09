@@ -3,6 +3,8 @@ from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QApplication, QGraphi
     QPushButton, QGraphicsDropShadowEffect, QLabel
 from PyQt5.QtCore import Qt, QPointF, pyqtSignal, QRectF, QTimer
 import numpy as np
+
+import checkers
 from interface.util import *
 from checkers import *
 from manager import *
@@ -39,6 +41,7 @@ class GameWindow(QGraphicsView):
         self.board = Board(self.board_size)
         self.checkers = initialize_board()
         self.player = "red"
+        self.playersRobot = "mitsubishi"
         self.did_capture = False
         self.capturing_piece = None
         self.is_game_over = 0
@@ -86,11 +89,17 @@ class GameWindow(QGraphicsView):
 
         self.scene.addItem(background_pixmap)
 
+    def set_players_robot(self, robot: str):
+        self.playersRobot = robot
+
     def add_buttons(self):
         self.one_robotK = QPushButton("Player vs Kawasaki", self)
         self.one_robotK.resize(250, 90)
         self.one_robotK.move(40, 200)
-        self.one_robotK.clicked.connect(lambda: self.manager.add_robot("kawasaki"))
+        self.one_robotK.clicked.connect(lambda: (self.manager.add_robot("kawasaki"),
+                                                 self.manager.add_robot("mitsubishi"),
+                                                 self.set_players_robot("mitsubishi")
+                                                 ))
 
         kawa_shadow = QGraphicsDropShadowEffect()
         self.add_shadow(self.one_robotK, kawa_shadow)
@@ -98,7 +107,10 @@ class GameWindow(QGraphicsView):
         self.one_robotM = QPushButton("Player vs Mitsubishi", self)
         self.one_robotM.resize(250, 90)
         self.one_robotM.move(40, 350)
-        self.one_robotM.clicked.connect(lambda: self.manager.add_robot("mitsubishi"))
+        self.one_robotM.clicked.connect(lambda: (self.manager.add_robot("kawasaki"),
+                                                 self.manager.add_robot("mitsubishi"),
+                                                 self.set_players_robot("kawasaki")
+                                                 ))
 
         mitsu_shadow = QGraphicsDropShadowEffect()
         self.add_shadow(self.one_robotM, mitsu_shadow)
@@ -158,6 +170,11 @@ class GameWindow(QGraphicsView):
 
     def update_scoreboard(self):
         self.sc.setText(f"WHITE: {self.score['white']}\nRED: {self.score['red']}")
+        print(checkers.is_game_over(self.checkers))
+        if checkers.is_game_over(self.checkers) == 100:
+            self.sc.setText(f"WHITE: WON\nRED: LOST")
+        elif checkers.is_game_over(self.checkers) == -100:
+            self.sc.setText(f"WHITE: LOST\nRED: WON")
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -210,8 +227,13 @@ class GameWindow(QGraphicsView):
                 self.delete_item_at(capture_row, capture_col)
 
             self.put_down(self.drag_item, grid_x, grid_y)
-            self.manager.transmit("kawasaki", *move)
-            self.manager.receive("kawasaki")
+
+            if self.playersRobot == "mitsubishi":
+                self.manager.transmit("mitsubishi", (orig_x, orig_y), (grid_x, grid_y))
+                self.manager.receive("mitsubishi")
+            else:
+                self.manager.transmit("kawasaki", (orig_x, orig_y), (grid_x, grid_y))
+                self.manager.receive("kawasaki")
             if self.did_capture:
                 if get_possible_captures(self.checkers, move[1]):
                     self.capturing_piece = move[1]
@@ -240,8 +262,13 @@ class GameWindow(QGraphicsView):
 
         src_x, src_y, dest_x, dest_y = ai_logic(self.checkers, self.did_capture, self.capturing_piece)
         self.make_move(src_x, src_y, dest_x, dest_y)
-        self.manager.transmit("kawasaki", [src_x,src_y], [dest_x, dest_y])
-        self.manager.receive("kawasaki")
+
+        if self.playersRobot == "mitsubishi":
+            self.manager.transmit("kawasaki", [src_x,src_y], [dest_x, dest_y])
+            self.manager.receive("kawasaki")
+        else:
+            self.manager.transmit("mitsubishi", [src_x,src_y], [dest_x, dest_y])
+            self.manager.receive("mitsubishi")
 
         self.is_game_over = is_game_over(self.checkers)
         if self.is_game_over:
@@ -257,9 +284,6 @@ class GameWindow(QGraphicsView):
         self.player = "red"
         self.refresh_scene()
         self.update_turn()
-
-    # def type_move(s
-    # Invalid input. Please enter integers only.")
 
     def delete_item_at(self, capture_row, capture_col):
         for item in self.scene.items():

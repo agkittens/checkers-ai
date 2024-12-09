@@ -5,7 +5,7 @@ class Robot:
     def __init__(self, target="mitsubishi"):
         if target == "mitsubishi":
             self.ip = "192.168.0.210"
-            self.port = 10001
+            self.port = 10002
         else:
             self.ip = "192.168.0.220"
             self.port = 49152
@@ -16,13 +16,12 @@ class Robot:
         self.is_connected = False
         self.is_available = True
 
-        # self.connect()
+        self.connect()
 
     # ipM: 192.168.0.210
     # ipK: 192.168.0.220
 
     def connect(self):
-        print(self.ip)
         try:
             # Create a TCP/IP socket
             self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -35,18 +34,6 @@ class Robot:
             if self.connection:
                 print('conncted to ' + self.target)
 
-            # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            #     s.bind((self.host, self.port))
-            #     s.listen()
-            #     print("Server is listening on", self.host, ":", self.port)
-            #
-            #     # Wait for the client (Melfa Basic V) to connect
-            #     conn, addr = s.accept()
-            #     with conn:
-            #         print('Connected by', addr)
-            #
-
-
         except ConnectionRefusedError:
             print("Connection to robot at {}:{} refused".format(self.ip, self.port))
             self.is_connected = False
@@ -58,16 +45,15 @@ class Robot:
     def send_data(self,p1,p2):
         if self.target == "kawasaki":
             data= str(7-p1[0])+str(p1[1]) +str(7-p2[0])+str(p2[1])
-        else:
+        elif self.target == "mitsubishi":
             data= str(7-p1[0])+str(7-p1[1]) +str(7-p2[0])+str(7-p2[1])
 
-
         if self.is_connected and self.is_available:
+            bytes = data.encode('ascii')
             try:
-                self.connection.sendall(data.encode('ascii'))
+                self.connection.sendall(bytes)
                 print("Data sent to robot: {}".format(data))
-                # self.connection.sendall(dataE.encode('ascii'))
-                # print("Data sent to robot: {}".format(dataE))
+
             except Exception as e:
                 print("Failed to send data to robot due to error: {}".format(str(e)))
         else:
@@ -91,13 +77,3 @@ class Robot:
             print("Not connected to the robot. Please connect first.")
 
 
-if __name__ == "__main__":
-
-    robot = Robot()
-    robot.ip = '192.168.0.210'
-    robot.port = 10001
-    robot.connect()
-    print(robot.is_connected, robot.is_available)
-
-    # robot.send_data('5','aa')
-    robot.receive_status()
