@@ -36,7 +36,6 @@ class Figure(QGraphicsItem):
         for row in self.figures_board:
             row_str = " ".join([str(elem) if elem is not None else '.' for elem in row])
             board_str += row_str + "\n"
-        print(board_str)
 
 class Board:
     def __init__(self, size):

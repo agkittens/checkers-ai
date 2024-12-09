@@ -2,7 +2,7 @@ from robot import *
 
 class Manager:
     def __init__(self):
-        self.active_connections = {"mitsubishi":None, "kawasaki":None, "others":None}
+        self.active_connections = {"mitsubishi":None, "kawasaki":None}
 
     def add_robot(self, name: str):
         self.active_connections[name] = Robot(target=name)
