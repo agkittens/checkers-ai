@@ -1,11 +1,15 @@
 from copy import deepcopy
 import math
 
+import torch
+
+from model import CheckersEvaluator
+
 EMPTY = 0
 WHITE_PAWN = 1
-WHITE_KING = 2
+WHITE_KING = 4
 BLACK_PAWN = -1
-BLACK_KING = -2
+BLACK_KING = -4
 
 
 def initialize_board():
@@ -285,11 +289,104 @@ def get_human_move(board, player):
         except ValueError:
             print("Invalid input. Please enter the position like: '2,3'.")
 
+
+model1 = CheckersEvaluator()
+model1.load_state_dict(torch.load('model3.pth', weights_only=True))
+
+def convert_result(result):
+    value = result[0] if result.argmax == 0 else result[1] * -1
+    return value
+
+
+def minimax_ai(board, depth, alpha, beta, maximizing_player, model):
+    board = deepcopy(board)
+    if depth == 0 or is_game_over(board):
+
+        return convert_result( model(board))
+    game_over = is_game_over(board)
+    if game_over != 0:
+        return game_over
+
+    if maximizing_player:
+        max_eval = -math.inf
+        for move in get_possible_moves(board, "white"):
+            new_board = make_move(board, move)
+            if is_capturing_move(move):
+                # Explore all possible further captures
+                additional_captures = get_possible_captures(new_board, move[1])  # Move[1] is the end position of the current piece
+                if additional_captures:
+                    for capture in additional_captures:
+                        further_board = make_move(new_board, capture)
+                        eval = minimax_ai(further_board, depth, alpha, beta, True, model)  # Continue with the same depth
+                        max_eval = max(max_eval, eval)
+                        alpha = max(alpha, eval)
+                        if max_eval >= beta:
+                            break
+                else:
+                    eval = minimax_ai(new_board, depth - 1, alpha, beta, False,model)
+            else:
+                eval = minimax_ai(new_board, depth - 1, alpha, beta, False,model)
+            max_eval = max(max_eval, eval)
+            alpha = max(alpha, eval)
+            if max_eval >= beta:
+                break
+        return max_eval
+    else:
+        min_eval = math.inf
+        for move in get_possible_moves(board, "black"):
+            new_board = make_move(board, move)
+            if is_capturing_move(move):
+                # Explore all possible further captures
+                additional_captures = get_possible_captures(new_board, move[1])  # Move[1] is the end position of the current piece
+                if additional_captures:
+                    for capture in additional_captures:
+                        further_board = make_move(new_board, capture)
+                        eval = minimax_ai(further_board, depth, alpha, beta, False,model)  # Continue with the same depth
+                        min_eval = min(min_eval, eval)
+                        beta = min(beta, eval)
+                        if min_eval <= alpha:
+                            break
+                else:
+                    eval = minimax_ai(new_board, depth - 1, alpha, beta, True,model)
+            else:
+                eval = minimax_ai(new_board, depth - 1, alpha, beta, True,model)
+            min_eval = min(min_eval, eval)
+            beta = min(beta, eval)
+            if min_eval <= alpha:
+                break
+        return min_eval
+
+def select_best_move_ai(board, depth, player, model):
+    board = deepcopy(board)
+    best_move = None
+    best_eval = float('-inf') if player == "white" else float('inf')
+    for move in get_possible_moves(board, player):
+        new_board = make_move(board, move)
+        move_value = minimax_ai(new_board, depth - 1, -math.inf, math.inf, player == "white", model)
+        if (player == "white" and move_value > best_eval) or (player == "black" and move_value < best_eval):
+            best_eval = move_value
+            best_move = move
+
+    return best_move
 def ai_logic(board, did_capture, piece):
     if did_capture:
-        ai_move = select_best_capturing_move(board, 6, "black", piece)
+        ai_move = select_best_capturing_move(board, 4, "black", piece)
     else:
-        ai_move = select_best_move(board, 6, "black")
+        # ai_move = select_best_move(board, 6, "black")
+        ai_move = select_best_move_ai(board, 4, "black", model1)
+    # for row in board:
+    #     for element in row:
+    #         if element == 0:
+    #             print("   ", end="")
+    #         if element == 1:
+    #             print(" w ", end="")
+    #         if element == 4:
+    #             print(" W ", end="")
+    #         if element == -1:
+    #             print(" b ", end="")
+    #         if element == -4:
+    #             print(" B ", end="")
+    #     print()
 
     board = make_move(board, ai_move)
     ((a, b), (c, d)) = ai_move

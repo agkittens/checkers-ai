@@ -223,6 +223,7 @@ class GameWindow(QGraphicsView):
             if abs(orig_y - grid_y) == 2:
                 capture_row = (orig_y + grid_y) // 2
                 capture_col = (orig_x + grid_x) // 2
+                self.did_capture = True
                 self.delete_item_at(capture_row, capture_col)
 
             self.put_down(self.drag_item, grid_x, grid_y)
@@ -233,14 +234,13 @@ class GameWindow(QGraphicsView):
             else:
                 self.manager.transmit("kawasaki", (orig_x, orig_y), (grid_x, grid_y))
                 self.manager.receive("kawasaki")
-
-            if get_possible_captures(self.checkers, move[1]):
-                self.did_capture = True
-                self.capturing_piece = move[1]
-                return
-            else:
-                self.did_capture = False
-                self.capturing_piece = None
+            if self.did_capture:
+                if get_possible_captures(self.checkers, move[1]):
+                    self.capturing_piece = move[1]
+                    return
+                else:
+                    self.did_capture = False
+                    self.capturing_piece = None
 
             self.is_game_over = is_game_over(self.checkers)
             if self.is_game_over:
